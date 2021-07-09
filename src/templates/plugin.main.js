@@ -1,6 +1,5 @@
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
-import { joinURL } from 'ufo'
 import { nuxtI18nHead, nuxtI18nSeo } from './head-meta'
 import { Constants, nuxtOptions, options } from './options'
 import {
@@ -8,14 +7,13 @@ import {
   getLocaleCookie,
   getLocaleDomain,
   getLocalesRegex,
-  resolveBaseUrl,
   matchBrowserLocale,
   parseAcceptLanguage,
-  registerStore,
-  setLocaleCookie,
-  syncVuex
+  setLocaleCookie
 } from './utils-common'
-import { loadLanguageAsync } from './utils'
+import { loadLanguageAsync, resolveBaseUrl, registerStore, syncVuex } from './plugin.utils'
+// @ts-ignore
+import { joinURL } from '~i18n-ufo'
 // @ts-ignore
 import { klona } from '~i18n-klona'
 
@@ -80,12 +78,19 @@ export default async (context) => {
       return
     }
 
-    // Abort if newLocale did not change
-    if (newLocale === app.i18n.locale) {
+    const oldLocale = app.i18n.locale
+
+    if (newLocale === oldLocale) {
       return
     }
 
-    const oldLocale = app.i18n.locale
+    const localeOverride = app.i18n.onBeforeLanguageSwitch(oldLocale, newLocale, initialSetup, context)
+    if (localeOverride && app.i18n.localeCodes.includes(localeOverride)) {
+      if (localeOverride === oldLocale) {
+        return
+      }
+      newLocale = localeOverride
+    }
 
     if (!initialSetup) {
       app.i18n.beforeLanguageSwitch(oldLocale, newLocale)
@@ -125,8 +130,16 @@ export default async (context) => {
     }
 
     app.i18n.locale = newLocale
-    // @ts-ignore
-    app.i18n.localeProperties = klona(options.locales.find(l => l.code === newLocale) || { code: newLocale })
+    /** @type {import('../../types').LocaleObject} */
+    const newLocaleProperties = options.normalizedLocales.find(l => l.code === newLocale) || { code: newLocale }
+    // In case certain locale has more properties than another, reset all the properties.
+    for (const key of Object.keys(app.i18n.localeProperties)) {
+      app.i18n.localeProperties[key] = undefined
+    }
+    // Copy properties of the new locale
+    for (const [key, value] of Object.entries(newLocaleProperties)) {
+      Vue.set(app.i18n.localeProperties, key, klona(value))
+    }
 
     if (options.vuex) {
       await syncVuex(store, newLocale, app.i18n.getLocaleMessage(newLocale), options.vuex)
@@ -269,7 +282,7 @@ export default async (context) => {
 
   /**
    * @param {import('vue-router').Route} route
-   * @return {string} Returns true if the browser language was detected.
+   * @return {string} Returns the browser locale that was detected or an empty string otherwise.
    */
   const doDetectBrowserLanguage = route => {
     // Browser detection is ignored if it is a nuxt generate.
@@ -318,10 +331,11 @@ export default async (context) => {
   const extendVueI18nInstance = i18n => {
     i18n.locales = klona(options.locales)
     i18n.localeCodes = klona(options.localeCodes)
-    i18n.localeProperties = klona(options.normalizedLocales.find(l => l.code === i18n.locale) || { code: i18n.locale })
+    i18n.localeProperties = Vue.observable(klona(options.normalizedLocales.find(l => l.code === i18n.locale) || { code: i18n.locale }))
     i18n.defaultLocale = options.defaultLocale
     i18n.differentDomains = options.differentDomains
     i18n.beforeLanguageSwitch = options.beforeLanguageSwitch
+    i18n.onBeforeLanguageSwitch = options.onBeforeLanguageSwitch
     i18n.onLanguageSwitched = options.onLanguageSwitched
     i18n.setLocaleCookie = locale => setLocaleCookie(locale, res, { useCookie, cookieDomain, cookieKey, cookieSecure, cookieCrossOrigin })
     i18n.getLocaleCookie = () => getLocaleCookie(req, { useCookie, cookieKey, localeCodes: options.localeCodes })

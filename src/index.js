@@ -93,6 +93,7 @@ export default function (moduleOptions) {
   this.nuxt.hook('build:before', () => buildHook.call(this, options))
 
   this.options.alias['~i18n-klona'] = require.resolve('klona/full').replace(/\.js$/, '.mjs')
+  this.options.alias['~i18n-ufo'] = require.resolve('ufo').replace(/\.js$/, '.mjs')
 
   if (!Array.isArray(this.options.router.middleware)) {
     throw new TypeError(formatMessage('options.router.middleware is not an array.'))
@@ -104,4 +105,8 @@ export default function (moduleOptions) {
   }
   this.options.render.bundleRenderer.directives = this.options.render.bundleRenderer.directives || {}
   this.options.render.bundleRenderer.directives.t = i18nExtensionsDirective
+
+  // Transpile is-https (IE11)
+  this.options.build.transpile = this.options.build.transpile || []
+  this.options.build.transpile.push('is-https')
 }

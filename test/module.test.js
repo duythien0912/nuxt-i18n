@@ -2,9 +2,13 @@ import { resolve } from 'path'
 import { readFileSync } from 'fs'
 import { generate, setup, loadConfig, get, url } from '@nuxtjs/module-test-utils'
 import { JSDOM } from 'jsdom'
+import { withoutTrailingSlash, withTrailingSlash } from 'ufo'
 import { getSeoTags } from './utils'
 
-/** @typedef {any} Nuxt */
+/**
+ * @typedef {any} Nuxt
+ * @typedef {import('@nuxt/types').NuxtConfig} NuxtConfig
+ */
 
 /** @param {string} html */
 const getDom = html => (new JSDOM(html)).window.document
@@ -81,6 +85,18 @@ describe('differentDomains enabled', () => {
         iso: 'fr-FR',
         name: 'Français',
         domain: 'fr.nuxt-app.localhost'
+      },
+      {
+        code: 'ru',
+        iso: 'ru-RU',
+        name: 'Русский',
+        domain: 'https://ru.nuxt-app.localhost'
+      },
+      {
+        code: 'ua',
+        iso: 'uk-UA',
+        name: 'Українська',
+        domain: 'http://ua.nuxt-app.localhost'
       }
     ]
 
@@ -171,6 +187,16 @@ describe('differentDomains enabled', () => {
         content: 'fr_FR'
       },
       {
+        tagName: 'meta',
+        property: 'og:locale:alternate',
+        content: 'ru_RU'
+      },
+      {
+        tagName: 'meta',
+        property: 'og:locale:alternate',
+        content: 'uk_UA'
+      },
+      {
         tagName: 'link',
         rel: 'alternate',
         href: 'http://en.nuxt-app.localhost/locale',
@@ -197,6 +223,30 @@ describe('differentDomains enabled', () => {
       {
         tagName: 'link',
         rel: 'alternate',
+        href: 'https://ru.nuxt-app.localhost/locale',
+        hreflang: 'ru'
+      },
+      {
+        tagName: 'link',
+        rel: 'alternate',
+        href: 'https://ru.nuxt-app.localhost/locale',
+        hreflang: 'ru-RU'
+      },
+      {
+        tagName: 'link',
+        rel: 'alternate',
+        href: 'http://ua.nuxt-app.localhost/locale',
+        hreflang: 'uk'
+      },
+      {
+        tagName: 'link',
+        rel: 'alternate',
+        href: 'http://ua.nuxt-app.localhost/locale',
+        hreflang: 'uk-UA'
+      },
+      {
+        tagName: 'link',
+        rel: 'alternate',
         href: 'http://en.nuxt-app.localhost/locale',
         hreflang: 'x-default'
       },
@@ -219,7 +269,7 @@ for (const trailingSlash of TRAILING_SLASHES) {
 
     /** @param {string} path */
     const pathRespectingTrailingSlash = path => {
-      return path.replace(/\/+$/, '') + (trailingSlash ? '/' : '') || '/'
+      return (trailingSlash ? withTrailingSlash(path, true) : withoutTrailingSlash(path, true) || withTrailingSlash(path, true))
     }
 
     /** @type {get} */
@@ -1829,6 +1879,83 @@ describe('prefix + detectBrowserLanguage + alwaysRedirect', () => {
     const response = await get('/en', requestOptions)
     expect(response.statusCode).toBe(302)
     expect(response.headers.location).toBe('/fr')
+  })
+})
+
+describe('locale change hooks', () => {
+  /** @type {Nuxt} */
+  let nuxt
+
+  beforeAll(async () => {
+    /** @type {NuxtConfig} */
+    const override = {
+      i18n: {
+        onBeforeLanguageSwitch: (oldLocale, newLocale) => {
+          if (newLocale === 'fr') {
+            return 'en'
+          }
+        }
+      }
+    }
+
+    const localConfig = loadConfig(__dirname, 'basic', override, { merge: true })
+
+    // Set manually to avoid merging array items.
+    localConfig.i18n.locales = [
+      {
+        code: 'en',
+        iso: 'en',
+        name: 'English'
+      },
+      {
+        code: 'fr',
+        iso: 'fr-FR',
+        name: 'Français'
+      },
+      {
+        code: 'pl',
+        iso: 'pl-PL',
+        name: 'Polish'
+      }
+    ]
+
+    nuxt = (await setup(localConfig)).nuxt
+  })
+
+  afterAll(async () => {
+    await nuxt.close()
+  })
+
+  test('does not override the default locale', async () => {
+    const html = await get('/')
+    const dom = getDom(html)
+    expect(dom.querySelector('#current-locale')?.textContent).toBe('locale: en')
+  })
+
+  test('does not override polish locale', async () => {
+    const html = await get('/pl')
+    const dom = getDom(html)
+    expect(dom.querySelector('#current-locale')?.textContent).toBe('locale: pl')
+  })
+
+  test('overrides french locale', async () => {
+    const html = await get('/fr')
+    const dom = getDom(html)
+    expect(dom.querySelector('#current-locale')?.textContent).toBe('locale: en')
+  })
+
+  test('redirects to correct URL when overridden', async () => {
+    const requestOptions = {
+      followRedirect: false,
+      resolveWithFullResponse: true,
+      simple: false, // Don't reject on non-2xx response
+      headers: {
+        'Accept-Language': 'fr'
+      }
+    }
+    const response = await get('/fr', requestOptions)
+    expect(response.statusCode).toBe(302)
+    expect(response.headers.location).toBe('/')
   })
 })
 

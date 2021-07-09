@@ -1,3 +1,33 @@
+### [6.27.3](https://github.com/nuxt-community/i18n-module/compare/v6.27.2...v6.27.3) (2021-07-09)
+
+
+### Bug Fixes
+
+* redirect without appending extra chars ([#1214](https://github.com/nuxt-community/i18n-module/issues/1214)) ([0527d63](https://github.com/nuxt-community/i18n-module/commit/0527d63b99cf30fbe71bd62ded731de3a86798fc))
+
+### [6.27.2](https://github.com/nuxt-community/i18n-module/compare/v6.27.1...v6.27.2) (2021-06-23)
+
+
+### Bug Fixes
+
+* ensure localeProperties is reactive (on locale change) ([#1208](https://github.com/nuxt-community/i18n-module/issues/1208)) ([d2dd400](https://github.com/nuxt-community/i18n-module/commit/d2dd4006e82734bc037cf19ef28d6e91bf1c0c83))
+* **types:** fix compatibility issue with typescript 4.3.x+ ([#1205](https://github.com/nuxt-community/i18n-module/issues/1205)) ([acc1145](https://github.com/nuxt-community/i18n-module/commit/acc11452141287f5b3b84fb06ee92678fcb1279d))
+
+### [6.27.1](https://github.com/nuxt-community/i18n-module/compare/v6.27.0...v6.27.1) (2021-06-15)
+
+
+### Bug Fixes
+
+* **types:** fix "lazy" type in deprecated types ([#1190](https://github.com/nuxt-community/i18n-module/issues/1190)) ([482317b](https://github.com/nuxt-community/i18n-module/commit/482317b4576b42204560ad0efd9cf9ac92940f90))
+* handle protocol in the domain key for different domains ([#1169](https://github.com/nuxt-community/i18n-module/issues/1169)) ([45b2b82](https://github.com/nuxt-community/i18n-module/commit/45b2b82f64152c8173e6b63ab0b4154e097a34c4))
+
+## [6.27.0](https://github.com/nuxt-community/i18n-module/compare/v6.26.0...v6.27.0) (2021-05-07)
+
+
+### Features
+
+* add onBeforeLanguageSwitch API ([#1164](https://github.com/nuxt-community/i18n-module/issues/1164)) ([5f5d748](https://github.com/nuxt-community/i18n-module/commit/5f5d748f04e3518002b1b28dfc17170072be4924))
+
 ## [6.26.0](https://github.com/nuxt-community/i18n-module/compare/v6.25.0...v6.26.0) (2021-04-20)
 
 
